@@ -1,7 +1,3 @@
-pip install --upgrade pip
-pip install gradio openai langchain langchain-experimental neo4j==5.9.0 wikipedia tiktoken yfiles_jupyter_graphs networkx matplotlib pillow 'pydantic>=2.7.0' albumentations pydantic-settings python-dotenv json-repair
-
-
 import os
 import gradio as gr
 import json
