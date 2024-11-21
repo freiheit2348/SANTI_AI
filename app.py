@@ -16,6 +16,7 @@ import re
 import tempfile
 from langchain.embeddings import OpenAIEmbeddings
 from langchain.vectorstores import FAISS
+from langchain.docstore.document import Document
 
 # ロギングの設定
 logging.basicConfig(level=logging.INFO)
@@ -127,7 +128,22 @@ def load_embeddings(file):
                 graph_documents = pickle.load(f)
         else:  # Gradioのファイルオブジェクトが渡された場合
             graph_documents = pickle.loads(file.read())
-        return graph_documents
+
+        # GraphDocumentをDocumentに変換
+        documents = []
+        for graph_doc in graph_documents:
+            content = ""
+            if hasattr(graph_doc, 'nodes'):
+                content += "Nodes:\n"
+                for node in graph_doc.nodes:
+                    content += f"{node}\n"
+            if hasattr(graph_doc, 'relationships'):
+                content += "Relationships:\n"
+                for rel in graph_doc.relationships:
+                    content += f"{rel}\n"
+            doc = Document(page_content=content)
+            documents.append(doc)
+        return documents
     except Exception as e:
         logging.error(f"PKLファイルの読み込み中にエラーが発生しました: {e}")
         return None
@@ -144,15 +160,15 @@ def initialize_components(openai_api_key, neo4j_uri, neo4j_username, neo4j_passw
         
         vectorstore = None
         if pkl_file is not None:
-            graph_documents = load_embeddings(pkl_file)
-            if graph_documents is None:
+            documents = load_embeddings(pkl_file)
+            if documents is None:
                 return None, "PKLファイルの読み込みに失敗しました。"
             
             # エンベディングモデルの作成
             embeddings_model = OpenAIEmbeddings(openai_api_key=openai_api_key)
             
-            # ドキュメントのエンベディングを生成し、ベクトルストアを作成
-            vectorstore = FAISS.from_documents(graph_documents, embeddings_model)
+            # ベクトルストアの作成
+            vectorstore = FAISS.from_documents(documents, embeddings_model)
         
         components = {
             "llm": llm,
