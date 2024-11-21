@@ -12,8 +12,10 @@ from langchain.chat_models import ChatOpenAI
 from langchain_experimental.graph_transformers import LLMGraphTransformer
 from langchain.document_loaders import TextLoader
 from langchain.text_splitter import TokenTextSplitter
-import re 
+import re
 import tempfile
+from langchain.embeddings import OpenAIEmbeddings
+from langchain.vectorstores import FAISS
 
 # ロギングの設定
 logging.basicConfig(level=logging.INFO)
@@ -112,7 +114,7 @@ template = """あなたは優秀なAIです。下記のコンテキストを利�
 {context}
 ユーザーの質問: {question}"""
 
-prompt = PromptTemplate(template=template)
+prompt = PromptTemplate(template=template, input_variables=["context", "question"])
 
 def setup_chain(llm):
     chain = LLMChain(llm=llm, prompt=prompt, verbose=True)
@@ -140,31 +142,49 @@ def initialize_components(openai_api_key, neo4j_uri, neo4j_username, neo4j_passw
         
         chain = setup_chain(llm)
         
-        graph_documents = None
+        vectorstore = None
         if pkl_file is not None:
             graph_documents = load_embeddings(pkl_file)
             if graph_documents is None:
                 return None, "PKLファイルの読み込みに失敗しました。"
+            
+            # エンベディングモデルの作成
+            embeddings_model = OpenAIEmbeddings(openai_api_key=openai_api_key)
+            
+            # ドキュメントのエンベディングを生成し、ベクトルストアを作成
+            vectorstore = FAISS.from_documents(graph_documents, embeddings_model)
         
-        components = {"llm": llm, "chain": chain, "neo4j_handler": neo4j_handler, "graph_documents": graph_documents}
-        return components, "Neo4jとPKLファイルの初期化に成功しました。"
+        components = {
+            "llm": llm,
+            "chain": chain,
+            "neo4j_handler": neo4j_handler,
+            "vectorstore": vectorstore
+        }
+        return components, "Neo4jとベクトルストアの初期化に成功しました。"
     
     except Exception as e:
         logging.error(f"初期化中にエラーが発生しました: {e}")
         return None, f"初期化中にエラーが発生しました: {e}"
 
-def chatbot_interface(llm, neo4j_handler, graph_documents, question, chain, history):
-    if llm is None or neo4j_handler is None or graph_documents is None:
-        return history + [("エラー", "チェーン、グラフインスタンス、またはグラフドキュメントが設定されていません。Neo4j Setupタブで設定してください。")]
+def chatbot_interface(components, question, history):
+    llm = components.get("llm")
+    chain = components.get("chain")
+    neo4j_handler = components.get("neo4j_handler")
+    vectorstore = components.get("vectorstore")
+    
+    if llm is None or neo4j_handler is None or vectorstore is None:
+        return history + [("エラー", "セットアップが完了していません。")]
     try:
+        # Structured data retrieval
         structured_data = structured_retriever(llm, neo4j_handler, question)
         
-        pkl_context = ""
-        for doc in graph_documents:
-            pkl_context += f"Nodes: {[node.id for node in doc.nodes]}\n"
-            pkl_context += f"Relationships: {[(rel.source, rel.type, rel.target) for rel in doc.relationships]}\n"
+        # ベクトル検索で関連文書を取得
+        docs = vectorstore.similarity_search(question, k=3)
+        retrieved_docs = "\n".join([doc.page_content for doc in docs])
         
-        final_context = f"Structured data:\n{structured_data}\nPKL data:\n{pkl_context}\nUnstructured data:"
+        # コンテキストの作成
+        final_context = f"Structured data:\n{structured_data}\nRetrieved documents:\n{retrieved_docs}"
+        
         response = chain.run({"context": final_context, "question": question})
         return history + [(question, response)]
     except Exception as e:
@@ -173,6 +193,8 @@ def chatbot_interface(llm, neo4j_handler, graph_documents, question, chain, hist
 
 def get_pkl_files():
     pkl_folder = "PKL"
+    if not os.path.exists(pkl_folder):
+        os.makedirs(pkl_folder)
     pkl_files = [f for f in os.listdir(pkl_folder) if f.endswith('.pkl')]
     return pkl_files
 
@@ -209,22 +231,14 @@ with gr.Blocks() as demo:
     save_log = gr.Button("会話ログを保存")
 
     def handle_setup(api_key, uri, username, password, pkl_file):
-        pkl_path = os.path.join("PKL", pkl_file)
+        pkl_path = os.path.join("PKL", pkl_file) if pkl_file else None
         components, status = initialize_components(api_key, uri, username, password, pkl_path)
         return components, status
 
     def handle_chat(components, question, history):
         if components is None:
             return history, history, "セットアップが完了していません。"
-        llm = components.get("llm")
-        chain = components.get("chain")
-        neo4j_handler = components.get("neo4j_handler")
-        graph_documents = components.get("graph_documents")
-        
-        if not llm or not chain or not neo4j_handler or not graph_documents:
-            return history, history, "必要なコンポーネントが初期化されていません。"
-        
-        new_history = chatbot_interface(llm, neo4j_handler, graph_documents, question, chain, history)
+        new_history = chatbot_interface(components, question, history)
         return new_history, new_history, "回答生成完了"
 
     def handle_clear():
@@ -232,7 +246,7 @@ with gr.Blocks() as demo:
 
     def handle_save_log(history):
         log_content = "\n".join([f"Q: {q}\nA: {a}\n" for q, a in history])
-        with tempfile.NamedTemporaryFile(mode="w", delete=False, suffix=".txt") as temp_file:
+        with tempfile.NamedTemporaryFile(mode="w", delete=False, suffix=".txt", encoding="utf-8") as temp_file:
             temp_file.write(log_content)
         return temp_file.name
 
@@ -247,4 +261,3 @@ with gr.Blocks() as demo:
 # アプリケーションの起動
 if __name__ == "__main__":
     demo.launch()
-  
