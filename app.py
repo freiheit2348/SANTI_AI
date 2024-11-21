@@ -187,7 +187,7 @@ with gr.Blocks() as demo:
         with gr.Column(scale=1):
             openai_api_input = gr.Textbox(label="OpenAI API Key", type="password", placeholder="sk-...")
             gr.Markdown("[OpenAI APIキーの取得はこちら](https://platform.openai.com/api-keys)")
-            neo4j_uri_input = gr.Textbox(label="Neo4j URI", value="neo4j+s://ec245ee2.databases.neo4j.io")
+            neo4j_uri_input = gr.Textbox(label="Neo4j URI", value="neo4j+s://3887c0d9.databases.neo4j.io")
             neo4j_username_input = gr.Textbox(label="Neo4j Username", value="neo4j")
             neo4j_password_input = gr.Textbox(label="Neo4j Password", type="password")
             pkl_file_select = gr.Dropdown(label="PKLファイルを選択", choices=get_pkl_files())
