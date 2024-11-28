@@ -1,0 +1,66 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# 仮想環境
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# IDEとエディタ
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+
+# ログと一時ファイル
+*.log
+temp/
+tmp/
+.temp/
+.tmp/
+
+# APIキーと認証情報
+.env
+.env.local
+.env.*.local
+credentials.json
+
+# データファイル
+*.pkl
+PKL/*.pkl
+*.faiss
+*.bin
+*.h5
+
+# キャッシュディレクトリ
+.cache/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Gradio関連
+flagged/
