@@ -17,7 +17,7 @@ Neo4JのPASSキー
 スペースへのアクセスはこちら。
 https://huggingface.co/spaces/SANTIAI/Santi_AI 
 
-PKLモデルに関して
+PKLモデルに関して...
 ※graph_documents (1).pklが最新のものとなっております。
 
 
