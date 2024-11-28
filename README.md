@@ -11,8 +11,10 @@ pinned: false
 
 
 # SANTI_AI
-※セキュリティ面から組織用のプライベートモードでスペースを稼働させています。
-下記より組織に参加し、デモページにアクセスいただけます！
+Neo4JのPASSキー
+*jhAjvotP0ru3z26Ad2nYHW93ZEGYZqZGeIHmBFeu9Y*
+
+スペースへのアクセスはこちら。
 https://huggingface.co/spaces/SANTIAI/Santi_AI 
 
 
