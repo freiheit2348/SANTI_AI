@@ -18,7 +18,7 @@ Neo4JのPASSキー
 https://huggingface.co/spaces/SANTIAI/Santi_AI 
 
 PKLモデルに関して...
-※graph_documents (1).pklが最新のものとなっております。
+graph_documents (1).pklが最新のものとなっております。
 
 
 <img width="1405" alt="Nimage4" src="https://github.com/user-attachments/assets/5616ba06-4818-4434-8a22-80c69bb4b1af">
